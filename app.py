@@ -114,6 +114,8 @@ def health_check():
     return jsonify({'status': 'healthy', 'timestamp': datetime.now().isoformat()})
 
 if __name__ == '__main__':
+    import os
+    port = int(os.environ.get('PORT', 5000))
     print("Starting Emotion Aware Personalized E-Learning Using Generative AI...")
-    print("Access the application at: http://localhost:5000")
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    print(f"Access the application at: http://localhost:{port}")
+    app.run(debug=False, host='0.0.0.0', port=port)
