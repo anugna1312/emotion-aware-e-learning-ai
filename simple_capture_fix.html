@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Simple Emotion Capture Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; text-align: center; }
+        .container { max-width: 800px; margin: 0 auto; }
+        video { border: 2px solid #333; border-radius: 10px; margin: 20px; }
+        button { padding: 15px 30px; font-size: 18px; margin: 10px; cursor: pointer; }
+        .success { color: green; font-weight: bold; }
+        .error { color: red; font-weight: bold; }
+        .info { color: blue; margin: 20px 0; }
+        textarea { width: 100%; height: 200px; margin: 20px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📸 Simple Emotion Capture Test</h1>
+        
+        <div class="info">
+            <h3>Step 1: Start Camera</h3>
+            <p>Click "Start Camera" button below</p>
+            <p>If browser asks for permission, click "Allow"</p>
+        </div>
+        
+        <video id="video" width="640" height="480" autoplay></video>
+        
+        <div style="margin: 20px 0;">
+            <button onclick="startCamera()">📷 Start Camera</button>
+            <button onclick="stopCamera()">⏹ Stop Camera</button>
+            <button onclick="capturePhoto()">📸 Capture Photo</button>
+            <button onclick="analyzeEmotion()">🧠 Analyze Emotion</button>
+        </div>
+        
+        <div>
+            <label for="topic">Enter Topic:</label>
+            <input type="text" id="topic" placeholder="e.g., Mathematics, Python Programming" style="padding: 10px; width: 300px; font-size: 16px;">
+        </div>
+        
+        <div id="status"></div>
+        <div id="result"></div>
+        <canvas id="canvas" style="display:none;"></canvas>
+    </div>
+
+    <script>
+        let stream = null;
+        let capturedImage = null;
+        
+        async function startCamera() {
+            try {
+                document.getElementById('status').innerHTML = '<p class="info">🔄 Starting camera...</p>';
+                
+                stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: true 
+                });
+                
+                const video = document.getElementById('video');
+                video.srcObject = stream;
+                
+                document.getElementById('status').innerHTML = '<p class="success">✅ Camera started successfully!</p>';
+                
+            } catch (error) {
+                console.error('Camera error:', error);
+                let errorMsg = '';
+                
+                if (error.name === 'NotAllowedError') {
+                    errorMsg = '❌ Camera permission denied! Please click camera icon 📷 in address bar and select "Allow"';
+                } else if (error.name === 'NotFoundError') {
+                    errorMsg = '❌ No camera found! Please connect a camera';
+                } else {
+                    errorMsg = '❌ Camera error: ' + error.message;
+                }
+                
+                document.getElementById('status').innerHTML = '<p class="error">' + errorMsg + '</p>';
+            }
+        }
+        
+        function stopCamera() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                document.getElementById('video').srcObject = null;
+                document.getElementById('status').innerHTML = '<p class="info">⏹ Camera stopped</p>';
+            }
+        }
+        
+        function capturePhoto() {
+            const video = document.getElementById('video');
+            const canvas = document.getElementById('canvas');
+            
+            if (!video.srcObject) {
+                alert('❌ Please start camera first!');
+                return;
+            }
+            
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0);
+            
+            capturedImage = canvas.toDataURL('image/jpeg');
+            console.log('Photo captured, size:', capturedImage.length);
+            
+            document.getElementById('status').innerHTML = '<p class="success">✅ Photo captured successfully!</p>';
+            alert('✅ Photo captured! Now enter a topic and click "Analyze Emotion"');
+        }
+        
+        async function analyzeEmotion() {
+            const topic = document.getElementById('topic').value;
+            
+            if (!topic) {
+                alert('❌ Please enter a topic first!');
+                return;
+            }
+            
+            if (!capturedImage) {
+                alert('❌ Please capture a photo first!');
+                return;
+            }
+            
+            try {
+                document.getElementById('status').innerHTML = '<p class="info">🧠 Analyzing emotion...</p>';
+                
+                const response = await fetch('http://localhost:5000/detect_emotion', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        topic: topic,
+                        mode: 'face',
+                        image: capturedImage
+                    })
+                });
+                
+                const result = await response.json();
+                console.log('Analysis result:', result);
+                
+                if (result.error) {
+                    document.getElementById('result').innerHTML = '<p class="error">❌ Analysis failed: ' + result.error + '</p>';
+                } else {
+                    let html = '<h3>🎯 Analysis Results</h3>';
+                    html += '<p><strong>Detected Emotion:</strong> ' + result.detected_emotion + '</p>';
+                    html += '<div style="background: #f0f0f0; padding: 20px; border-radius: 10px; text-align: left;">';
+                    html += '<h4>📚 Learning Response:</h4>';
+                    html += '<div style="white-space: pre-wrap;">' + result.adaptive_learning_response + '</div>';
+                    html += '</div>';
+                    
+                    document.getElementById('result').innerHTML = html;
+                    document.getElementById('status').innerHTML = '<p class="success">✅ Emotion analysis complete!</p>';
+                }
+                
+            } catch (error) {
+                console.error('Analysis error:', error);
+                document.getElementById('result').innerHTML = '<p class="error">❌ Analysis failed: ' + error.message + '</p>';
+            }
+        }
+    </script>
+</body>
+</html>

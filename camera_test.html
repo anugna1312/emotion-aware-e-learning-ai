@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Camera Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 50px; text-align: center; }
+        .container { max-width: 600px; margin: 0 auto; }
+        video { border: 2px solid #333; border-radius: 10px; }
+        button { padding: 15px 30px; font-size: 18px; margin: 10px; cursor: pointer; }
+        .success { color: green; font-weight: bold; }
+        .error { color: red; font-weight: bold; }
+        .info { color: blue; margin: 20px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📷 Camera Access Test</h1>
+        
+        <div class="info">
+            <h3>Step 1: Allow Camera Access</h3>
+            <p>Click "Start Camera" button below</p>
+            <p>If browser asks for permission, click "Allow"</p>
+        </div>
+        
+        <video id="video" width="600" height="400" autoplay></video>
+        
+        <div style="margin: 20px 0;">
+            <button onclick="startCamera()">📷 Start Camera</button>
+            <button onclick="stopCamera()">⏹ Stop Camera</button>
+            <button onclick="testCamera()">🧪 Test Camera</button>
+        </div>
+        
+        <div id="status"></div>
+    </div>
+
+    <script>
+        let stream = null;
+        
+        async function startCamera() {
+            try {
+                document.getElementById('status').innerHTML = '<p class="info">🔄 Starting camera...</p>';
+                
+                stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        width: { ideal: 640 },
+                        height: { ideal: 480 }
+                    } 
+                });
+                
+                const video = document.getElementById('video');
+                video.srcObject = stream;
+                
+                document.getElementById('status').innerHTML = '<p class="success">✅ Camera started successfully!</p>';
+                
+            } catch (error) {
+                console.error('Camera error:', error);
+                let errorMsg = '';
+                
+                switch(error.name) {
+                    case 'NotAllowedError':
+                        errorMsg = '❌ Camera permission denied! Please click camera icon 📷 in address bar and select "Allow"';
+                        break;
+                    case 'NotFoundError':
+                        errorMsg = '❌ No camera found! Please connect a camera and try again';
+                        break;
+                    case 'NotReadableError':
+                        errorMsg = '❌ Camera is being used by another app! Please close other camera apps';
+                        break;
+                    default:
+                        errorMsg = '❌ Camera error: ' + error.message;
+                }
+                
+                document.getElementById('status').innerHTML = '<p class="error">' + errorMsg + '</p>';
+            }
+        }
+        
+        function stopCamera() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                document.getElementById('video').srcObject = null;
+                document.getElementById('status').innerHTML = '<p class="info">⏹ Camera stopped</p>';
+            }
+        }
+        
+        function testCamera() {
+            document.getElementById('status').innerHTML = '<p class="info">🧪 Testing camera access...</p>';
+            
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                document.getElementById('status').innerHTML = '<p class="success">✅ Camera API is available!</p>';
+            } else {
+                document.getElementById('status').innerHTML = '<p class="error">❌ Camera API not available in this browser</p>';
+            }
+        }
+    </script>
+</body>
+</html>

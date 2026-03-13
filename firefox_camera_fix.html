@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Firefox Camera Fix</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; text-align: center; background: #f5f5f5; }
+        .container { max-width: 900px; margin: 0 auto; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        video { border: 3px solid #ff6b35; border-radius: 10px; margin: 20px; background: #000; }
+        button { padding: 15px 30px; font-size: 18px; margin: 10px; cursor: pointer; border: none; border-radius: 8px; }
+        .start-btn { background: #28a745; color: white; }
+        .stop-btn { background: #dc3545; color: white; }
+        .capture-btn { background: #007bff; color: white; }
+        .analyze-btn { background: #6f42c1; color: white; }
+        .success { color: #28a745; font-weight: bold; font-size: 18px; }
+        .error { color: #dc3545; font-weight: bold; font-size: 18px; }
+        .info { color: #007bff; font-size: 16px; margin: 20px 0; }
+        .warning { color: #ffc107; font-weight: bold; font-size: 16px; }
+        textarea { width: 100%; height: 200px; margin: 20px 0; padding: 15px; border: 2px solid #ddd; border-radius: 8px; }
+        input[type="text"] { padding: 12px; width: 300px; font-size: 16px; border: 2px solid #ddd; border-radius: 8px; }
+        .step { background: #e9ecef; padding: 15px; margin: 10px 0; border-radius: 8px; text-align: left; }
+        .result-box { background: #d4edda; padding: 20px; border-radius: 10px; margin: 20px 0; text-align: left; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🦊 Firefox Camera Emotion Capture</h1>
+        
+        <div class="step">
+            <h3>🔥 Firefox-Specific Instructions:</h3>
+            <p><strong>1.</strong> Click <strong>Start Camera</strong> button below</p>
+            <p><strong>2.</strong> When Firefox asks for permission, click <strong>"Allow"</strong></p>
+            <p><strong>3.</strong> If permission denied, click <strong>🔒 icon</strong> in address bar → <strong>Camera</strong> → <strong>"Allow"</strong></p>
+            <p><strong>4.</strong> Refresh page and try again</p>
+        </div>
+        
+        <video id="video" width="640" height="480" autoplay></video>
+        
+        <div style="margin: 20px 0;">
+            <button class="start-btn" onclick="startCamera()">📷 Start Camera</button>
+            <button class="stop-btn" onclick="stopCamera()">⏹ Stop Camera</button>
+            <button class="capture-btn" onclick="capturePhoto()">📸 Capture Photo</button>
+            <button class="analyze-btn" onclick="analyzeEmotion()">🧠 Analyze Emotion</button>
+        </div>
+        
+        <div>
+            <label for="topic"><strong>Enter Topic:</strong></label><br><br>
+            <input type="text" id="topic" placeholder="e.g., Mathematics, Python Programming, Science" value="Mathematics Trigonometry">
+        </div>
+        
+        <div id="status"></div>
+        <div id="result"></div>
+        <canvas id="canvas" style="display:none;"></canvas>
+        
+        <div class="step">
+            <h3>🛠️ Troubleshooting:</h3>
+            <p>❌ <strong>If camera doesn't start:</strong></p>
+            <ul style="text-align: left;">
+                <li>Click <strong>🔒 icon</strong> in address bar</li>
+                <li>Set <strong>Camera</strong> to <strong>"Allow"</strong></li>
+                <li>Refresh page (F5)</li>
+                <li>Try again</li>
+            </ul>
+            <p>❌ <strong>If still not working:</strong></p>
+            <ul style="text-align: left;">
+                <li>Close all Firefox tabs except this one</li>
+                <li>Restart Firefox completely</li>
+                <li>Try different browser (Chrome/Edge)</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        let stream = null;
+        let capturedImage = null;
+        
+        // Firefox-specific camera start
+        async function startCamera() {
+            try {
+                document.getElementById('status').innerHTML = '<p class="info">🔄 Firefox: Requesting camera...</p>';
+                
+                // Firefox-specific constraints
+                const constraints = {
+                    video: {
+                        width: { ideal: 640, max: 640 },
+                        height: { ideal: 480, max: 480 },
+                        facingMode: 'user'
+                    }
+                };
+                
+                console.log('Firefox: Requesting camera with constraints:', constraints);
+                
+                stream = await navigator.mediaDevices.getUserMedia(constraints);
+                
+                const video = document.getElementById('video');
+                video.srcObject = stream;
+                
+                video.onloadedmetadata = () => {
+                    video.play();
+                    console.log('Firefox: Video playing successfully');
+                    document.getElementById('status').innerHTML = '<p class="success">✅ Firefox: Camera started successfully!</p>';
+                };
+                
+            } catch (error) {
+                console.error('Firefox: Camera error:', error);
+                let errorMsg = '';
+                
+                if (error.name === 'NotAllowedError') {
+                    errorMsg = '❌ Firefox: Camera permission denied!\n\n🔧 **Firefox Fix:**\n1. Click 🔒 icon in address bar\n2. Find "Camera" in the list\n3. Change from "Block" to "Allow"\n4. Refresh page (F5)\n5. Try again';
+                } else if (error.name === 'NotFoundError') {
+                    errorMsg = '❌ Firefox: No camera found!\n\n🔧 **Fix:**\n1. Connect a camera to your computer\n2. Make sure camera works in other apps\n3. Restart Firefox\n4. Try again';
+                } else if (error.name === 'NotReadableError') {
+                    errorMsg = '❌ Firefox: Camera already in use!\n\n🔧 **Fix:**\n1. Close all other apps using camera\n2. Close all Firefox tabs except this one\n3. Restart Firefox\n4. Try again';
+                } else {
+                    errorMsg = '❌ Firefox: Camera error: ' + error.message + '\n\n🔧 **Fix:**\n1. Refresh page (F5)\n2. Try Chrome/Edge browser\n3. Restart computer';
+                }
+                
+                document.getElementById('status').innerHTML = '<p class="error">' + errorMsg + '</p>';
+                alert(errorMsg);
+            }
+        }
+        
+        function stopCamera() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                document.getElementById('video').srcObject = null;
+                document.getElementById('status').innerHTML = '<p class="info">⏹ Firefox: Camera stopped</p>';
+            }
+        }
+        
+        function capturePhoto() {
+            const video = document.getElementById('video');
+            const canvas = document.getElementById('canvas');
+            
+            if (!video.srcObject) {
+                alert('❌ Firefox: Please start camera first!');
+                return;
+            }
+            
+            try {
+                canvas.width = video.videoWidth || 640;
+                canvas.height = video.videoHeight || 480;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(video, 0, 0);
+                
+                capturedImage = canvas.toDataURL('image/jpeg', 0.9);
+                console.log('Firefox: Photo captured, size:', capturedImage.length);
+                
+                document.getElementById('status').innerHTML = '<p class="success">✅ Firefox: Photo captured successfully!</p>';
+                alert('✅ Firefox: Photo captured!\n\nNow enter a topic and click "Analyze Emotion"');
+                
+            } catch (error) {
+                console.error('Firefox: Capture failed:', error);
+                alert('❌ Firefox: Photo capture failed: ' + error.message);
+            }
+        }
+        
+        async function analyzeEmotion() {
+            const topic = document.getElementById('topic').value;
+            
+            if (!topic) {
+                alert('❌ Firefox: Please enter a topic first!');
+                return;
+            }
+            
+            if (!capturedImage) {
+                alert('❌ Firefox: Please capture a photo first!\n\n1. Start Camera\n2. Capture Photo\n3. Then Analyze');
+                return;
+            }
+            
+            try {
+                document.getElementById('status').innerHTML = '<p class="info">🧠 Firefox: Analyzing emotion...</p>';
+                
+                const response = await fetch('http://localhost:5000/detect_emotion', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        topic: topic,
+                        mode: 'face',
+                        image: capturedImage
+                    })
+                });
+                
+                const result = await response.json();
+                console.log('Firefox: Analysis result:', result);
+                
+                if (result.error) {
+                    document.getElementById('result').innerHTML = '<div class="error">❌ Analysis failed: ' + result.error + '</div>';
+                } else {
+                    let html = '<div class="result-box">';
+                    html += '<h3>🎯 Firefox: Analysis Complete!</h3>';
+                    html += '<p><strong>📸 Detected Emotion:</strong> <span style="color: #007bff; font-size: 20px;">' + result.detected_emotion.toUpperCase() + '</span></p>';
+                    html += '<h4>📚 Learning Response:</h4>';
+                    html += '<div style="background: white; padding: 15px; border-radius: 8px; white-space: pre-wrap; font-family: monospace;">' + result.adaptive_learning_response + '</div>';
+                    html += '</div>';
+                    
+                    document.getElementById('result').innerHTML = html;
+                    document.getElementById('status').innerHTML = '<p class="success">✅ Firefox: Emotion analysis complete!</p>';
+                }
+                
+            } catch (error) {
+                console.error('Firefox: Analysis error:', error);
+                document.getElementById('result').innerHTML = '<div class="error">❌ Analysis failed: ' + error.message + '</div>';
+            }
+        }
+        
+        // Auto-start instructions
+        window.addEventListener('load', function() {
+            console.log('Firefox Camera Fix Loaded');
+            document.getElementById('status').innerHTML = '<p class="info">🦊 Firefox: Ready! Click "Start Camera" to begin</p>';
+        });
+    </script>
+</body>
+</html>

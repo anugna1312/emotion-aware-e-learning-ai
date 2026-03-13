@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Audio Emotion Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; text-align: center; }
+        button { padding: 15px 30px; font-size: 18px; margin: 10px; cursor: pointer; }
+        .success { color: green; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+    <h1>🎤 Audio Emotion Test</h1>
+    
+    <button onclick="startAudio()">🎤 Start Recording</button>
+    <button onclick="stopAudio()">⏹ Stop Recording</button>
+    <button onclick="analyzeAudio()">🧠 Analyze Emotion</button>
+    
+    <input type="text" id="topic" placeholder="Enter topic" style="padding: 10px; margin: 20px;">
+    
+    <div id="status"></div>
+    
+    <script>
+        let mediaRecorder;
+        let audioChunks = [];
+        let audioBlob;
+        
+        async function startAudio() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+                
+                mediaRecorder.ondataavailable = event => {
+                    audioChunks.push(event.data);
+                };
+                
+                mediaRecorder.start();
+                document.getElementById('status').innerHTML = '<p class="success">🎤 Recording...</p>';
+            } catch (error) {
+                document.getElementById('status').innerHTML = '<p class="error">❌ ' + error.message + '</p>';
+            }
+        }
+        
+        function stopAudio() {
+            if (mediaRecorder) {
+                mediaRecorder.stop();
+                mediaRecorder.onstop = () => {
+                    audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                    document.getElementById('status').innerHTML = '<p class="success">✅ Recording stopped!</p>';
+                };
+            }
+        }
+        
+        async function analyzeAudio() {
+            if (!audioBlob) {
+                alert('Please record audio first!');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onloadend = async () => {
+                const audioData = reader.result;
+                const topic = document.getElementById('topic').value;
+                
+                try {
+                    const response = await fetch('http://localhost:5000/detect_emotion', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            topic: topic,
+                            mode: 'audio',
+                            audio: audioData
+                        })
+                    });
+                    
+                    const result = await response.json();
+                    alert('Detected: ' + result.detected_emotion);
+                } catch (error) {
+                    alert('Error: ' + error.message);
+                }
+            };
+            reader.readAsDataURL(audioBlob);
+        }
+    </script>
+</body>
+</html>
